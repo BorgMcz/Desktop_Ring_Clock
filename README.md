@@ -1,3 +1,3 @@
-# Desktop_Ring_Clock
+# Desktop_Ring_Clock for ESP32
 
-More info on https://www.instructables.com/id/Desktop-Ring-Clock/
+Original code for ESP8266 info on https://www.instructables.com/id/Desktop-Ring-Clock/
