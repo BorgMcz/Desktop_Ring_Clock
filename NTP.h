@@ -217,7 +217,7 @@ void ISRsecondTick() {
 	DateTime = ConvertUnixTimeStamp(absoluteActualTime); //  convert to DateTime format
 	if (millis() - customWatchdog > 30000) {
 		Serial.println("CustomWatchdog bites. Bye");
-		ESP.reset();
+		ESP.restart();
 	}
 }
 

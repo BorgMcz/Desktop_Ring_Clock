@@ -7,7 +7,7 @@
 #include "FastLED.h"
 #define LED_TYPE WS2811
 #define COLOR_ORDER GRB
-#define LED_PIN 2
+#define LED_PIN 21
 #define NUM_LEDS  60
 CRGB leds[NUM_LEDS];
 byte RING_LEDS[] = {15, 44, 16, 43, 17, 42, 18, 41, 19, 40, 20, 39, 21, 38, 22, 37, 23, 36, 24, 35, 25, 34, 26, 33, 27, 32, 28, 31, 29, 30,
@@ -15,10 +15,10 @@ byte RING_LEDS[] = {15, 44, 16, 43, 17, 42, 18, 41, 19, 40, 20, 39, 21, 38, 22, 
 CRGB HourColor = CRGB(145, 0, 0); //RED
 CRGB MinuteColor = CRGB(0, 118, 138); //GREEN
 CRGB SecondColor = CRGB(144, 0, 112); //BLUE
-uint8 BRIGHTNESS = 160;
+unsigned int BRIGHTNESS = 160;
 byte temp_second = 0;
-#include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
+#include <WiFi.h>
+#include <ESP32WebServer.h>
 #include <WiFiUdp.h>
 #include <Ticker.h>
 #include <EEPROM.h>
@@ -36,9 +36,9 @@ byte temp_second = 0;
 #include "Page_NetworkConfiguration.h"
 #include "Page_SetTime.h"
 
-extern "C" {
-#include "user_interface.h"
-}
+//extern "C" {
+//#include "user_interface.h"
+//}
 
 void setup() {
 	Serial.begin(115200);
@@ -65,7 +65,7 @@ void setup() {
 	if ((WIFI_connected != WL_CONNECTED) or !CFG_saved) {
 		// DEFAULT CONFIG
 		Serial.println("Setting AP mode default parameters");
-		config.ssid = "RingClock-" + String(ESP.getChipId(), HEX); // SSID of access point
+		config.ssid = "RingClock-config"; // SSID of access point
 		config.password = "";   // password of access point
 		config.dhcp = true;
 		config.IP[0] = 192;

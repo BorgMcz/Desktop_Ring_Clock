@@ -2,7 +2,7 @@
 #define GLOBAL_H
 
 
-ESP8266WebServer server(80);							// The Webserver
+ESP32WebServer server(80);							// The Webserver
 boolean firstStart = true;								// On firststart = true, NTP will try to get a valid time
 boolean ntp_response_ok = false;
 boolean manual_time_set = false;;
