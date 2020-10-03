@@ -17,6 +17,8 @@ Ticker tkSecond;												  // Second - Timer for Updating Datetime Structure
 //custom declarations
 long absoluteActualTime;
 long  customWatchdog;                     // WatchDog to detect main loop blocking. There is a builtin WatchDog to the chip firmare not related to this one
+bool white_light_on = false;			// White light values
+unsigned long white_light_timer;
 
 struct strConfig {
   boolean dhcp;                         // 1 Byte - EEPROM 16
@@ -30,6 +32,19 @@ struct strConfig {
   String password;                      // up to 32 Byte - EEPROM 96
   String ntpServerName;                 // up to 32 Byte - EEPROM 128
   String DeviceName;                    // up to 32 Byte - EEPROM 160
+  boolean displaySec;					// 1 Byte - EEPROM 192
+  byte displaySecStart;					// 1 Byte - EEPROM 193
+  byte displaySecStop;					// 1 Byte - EEPROM 194
+  byte brightnessMin;					// 1 Byte - EEPROM 195
+  byte brightnessMax;					// 1 Byte - EEPROM 196
+  unsigned long colorSecPrint;			// 4 Byte - EEPROM 197
+  unsigned long colorMinPrint;			// 4 Byte - EEPROM 201
+  unsigned long colorHourPrint;			// 4 Byte - EEPROM 205
+  unsigned long colorCif1Print;			// 4 Byte - EEPROM 209
+  unsigned long colorCif2Print;			// 4 Byte - EEPROM 213
+  unsigned long colorLight;				// 4 Byte - EEPROM 217
+  byte colorLightBr;					// 1 Byte - EEPROM 221
+  byte colorLightTm;					// 1 Byte - EEPROM 222
   // Application Settings here... from EEPROM 192 up to 511 (0 - 511)
 
 } config;
@@ -151,6 +166,20 @@ void WriteConfig(){
   WriteStringToEEPROM(96, config.password);
   WriteStringToEEPROM(128, config.ntpServerName);
   WriteStringToEEPROM(160, config.DeviceName);
+  EEPROM.write(192, config.displaySec);
+  EEPROM.write(193, config.displaySecStart);
+  EEPROM.write(194, config.displaySecStop);
+  EEPROM.write(195, config.brightnessMin);
+  EEPROM.write(196, config.brightnessMax);
+  EEPROMWritelong(197, config.colorSecPrint); // 4 Byte
+  EEPROMWritelong(201, config.colorMinPrint); // 4 Byte
+  EEPROMWritelong(205, config.colorHourPrint); // 4 Byte
+  EEPROMWritelong(209, config.colorCif1Print); // 4 Byte
+  EEPROMWritelong(213, config.colorCif2Print); // 4 Byte
+  EEPROMWritelong(217, config.colorLight); // 4 Byte
+  EEPROM.write(221, config.colorLightBr);	// 1 Byte
+  EEPROM.write(222, config.colorLightTm);	// 1 Byte
+
   // Application Settings here... from EEPROM 192 up to 511 (0 - 511)
   EEPROM.commit();
 }
@@ -181,6 +210,19 @@ boolean ReadConfig(){
     config.ntpServerName = ReadStringFromEEPROM(128);
     config.DeviceName = ReadStringFromEEPROM(160);
     // Application parameters here ... from EEPROM 192 to 511
+	config.displaySec = EEPROM.read(192);
+	config.displaySecStart = EEPROM.read(193);
+	config.displaySecStop = EEPROM.read(194);
+	config.brightnessMin = EEPROM.read(195);
+	config.brightnessMax = EEPROM.read(196);
+	config.colorSecPrint = EEPROMReadlong(197); // 4 Byte
+	config.colorMinPrint = EEPROMReadlong(201); // 4 Byte
+	config.colorHourPrint = EEPROMReadlong(205); // 4 Byte
+	config.colorCif1Print = EEPROMReadlong(209); // 4 Byte
+	config.colorCif2Print = EEPROMReadlong(213); // 4 Byte
+	config.colorLight = EEPROMReadlong(217); // 4 Byte
+	config.colorLightBr = EEPROM.read(221); // 1 Byte
+	config.colorLightTm = EEPROM.read(222); // 1 Byte
     return true;
   }
   else
@@ -210,7 +252,18 @@ void printConfig(){
   Serial.printf("Device Name:%s\n", config.DeviceName.c_str());
 
     // Application Settings here... from EEPROM 192 up to 511 (0 - 511)
-
+  Serial.printf("Display Sec:%d\n", config.displaySec);
+  Serial.printf("Display Sec start:%d\n", config.displaySecStart);
+  Serial.printf("Display Sec stop:%d\n", config.displaySecStop);
+  Serial.printf("Color sec print:%6X\n", config.colorSecPrint);
+  Serial.printf("Color min print:%6X\n", config.colorMinPrint);
+  Serial.printf("Color hour print:%6X\n", config.colorHourPrint);
+  Serial.printf("Color cif1 print:%6X\n", config.colorCif1Print);
+  Serial.printf("Color Cif2 print:%6X\n", config.colorCif2Print);
+  Serial.printf("Color Light print:%6X\n", config.colorLight);
+  Serial.printf("Light Brightness:%d\n", config.colorLightBr);
+  Serial.printf("Light Time:%d\n", config.colorLightTm);
+  
 }
 
 String GetMacAddress(){

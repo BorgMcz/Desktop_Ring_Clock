@@ -1,29 +1,43 @@
-/*
- * * ESP8266 template with phone config web page
- * based on BVB_WebConfig_OTA_V7 from Andreas Spiess https://github.com/SensorsIot/Internet-of-Things-with-ESP8266
+/* 
+ *   BorgMcz  http://www.dccmm.cz
+ * * ESP32 ring clock NEOPIXEL
+ *   fork to https://github.com/ancalex/Desktop_Ring_Clock
+ * 
  *
+ * Add: 	- button reset default config
+ * 			- dislpay second to time
+ *			- light sensor 
+ *			- set color to full LED
+ * 			- add button to default config or set light
  */
 #define FASTLED_INTERRUPT_RETRY_COUNT 0
-#include "FastLED.h"
-#define LED_TYPE WS2811
-#define COLOR_ORDER GRB
+#include "FastLED.h"					// https://github.com/FastLED/FastLED
+#define LED_TYPE NEOPIXEL
+//#define COLOR_ORDER GRB
 #define LED_PIN 21
-#define NUM_LEDS  60
+#define NUM_LEDS  108
 CRGB leds[NUM_LEDS];
-byte RING_LEDS[] = {15, 44, 16, 43, 17, 42, 18, 41, 19, 40, 20, 39, 21, 38, 22, 37, 23, 36, 24, 35, 25, 34, 26, 33, 27, 32, 28, 31, 29, 30,
-		0, 59, 1, 58, 2, 57, 3, 56, 4, 55, 5, 54, 6, 53, 7, 52, 8, 51, 9, 50, 10, 49, 11, 48, 12, 47, 13, 46, 14, 45};
-CRGB HourColor = CRGB(145, 0, 0); //RED
-CRGB MinuteColor = CRGB(0, 118, 138); //GREEN
-CRGB SecondColor = CRGB(144, 0, 112); //BLUE
-unsigned int BRIGHTNESS = 160;
+byte RING_LEDS[] = {30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29};
+byte RING_LEDH[] = {84, 88, 92, 96, 100, 104, 60, 64, 68, 72, 76, 80};
+//					v0	1	2	v3	 4	5  v6  7  8  v9  10	 11
+byte RING_LEDF[] = {84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 
+					60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83};
+unsigned int BRIGHTNESS = 20;
 byte temp_second = 0;
+#define DEFAULT_PIN 22
+#define FOTO_PIN 33
 #include <WiFi.h>
-#include <ESP32WebServer.h>
+#include <ESP32WebServer.h>				// https://github.com/Pedroalbuquerque/ESP32WebServer
 #include <WiFiUdp.h>
 #include <Ticker.h>
 #include <EEPROM.h>
 #include "global.h"
 #include "NTP.h"
+
+#include <RBD_Timer.h>          // Arduino Timer Library v1.2.0, by Alex Taujenis - https://github.com/alextaujenis/RBD_Timer
+#include <RBD_Button.h>         // Arduino RBD Button Library Example v2.1.0, by Alex Taujenis - https://github.com/alextaujenis/RBD_Button
+RBD::Button buttonMode(DEFAULT_PIN);     // mode setings
 
 // Include STYLE and Script "Pages"
 #include "Page_Script.js.h"
@@ -42,9 +56,22 @@ byte temp_second = 0;
 
 void setup() {
 	Serial.begin(115200);
+	pinMode(DEFAULT_PIN, INPUT_PULLUP);			// defaul setings pins (reset config)
+	// tell FastLED about the LED strip configuration
+	FastLED.addLeds<LED_TYPE, LED_PIN >(leds, NUM_LEDS);
+	FastLED.setBrightness(BRIGHTNESS);
+	   // limit my draw to 1A at 5v of power draw
+	FastLED.setMaxPowerInVoltsAndMilliamps(5,400); 
+	Serial.println("FastLed Setup done ... waiting..");
+	delay(2000);
+
 	//**** Network Config load
 	EEPROM.begin(512); // define an EEPROM space of 512Bytes to store data
 	CFG_saved = ReadConfig();
+	if (digitalRead(DEFAULT_PIN) == 0) {						// reset config data to default
+		CFG_saved = false;
+		rotring();
+	}
 
 	//  Connect to WiFi acess point or start as Acess point
 	if (CFG_saved)  //if no configuration yet saved, load defaults
@@ -85,6 +112,19 @@ void setup() {
 		config.Update_Time_Via_NTP_Every = 3;
 		config.timeZone = 20;
 		config.isDayLightSaving = true;
+		config.displaySec = true;
+		config.displaySecStart = 0;
+		config.displaySecStop = 24;
+		config.brightnessMin = 10;
+		config.brightnessMax = 80;
+		config.colorSecPrint = 0x4169E1;
+		config.colorMinPrint = 0x6A5ACD;
+		config.colorHourPrint = 0xD62505;
+		config.colorCif1Print = 0xFFF238;
+		config.colorCif2Print = 0xBFCB1A;
+		config.colorLight = 0xF0F0F0;
+		config.colorLightBr = 200;
+		config.colorLightTm = 5;		
 		//WriteConfig();
 		WiFi.mode(WIFI_AP);
 		WiFi.softAP(config.ssid.c_str(),"admin1234");
@@ -98,16 +138,19 @@ void setup() {
 		server.send_P ( 200, "text/html", PAGE_AdminMainPage); // const char top of page
 	});
 
+/*
 	server.on("/favicon.ico", []() {
 		Serial.println("favicon.ico");
 		server.send( 200, "text/html", "" );
 	});
+*/	
 	// Network config
 	server.on("/config.html", send_network_configuration_html);
 	// Info Page
 	server.on("/info.html", []() {
 		Serial.println("info.html");
-		server.send_P ( 200, "text/html", PAGE_Information );
+		Information_Page();
+		
 	});
 	server.on("/ntp.html", send_NTP_configuration_html);
 	server.on("/time.html", send_Time_Set_html);
@@ -132,17 +175,14 @@ void setup() {
 	Serial.println("HTTP server started");
 
 	printConfig();
-
+	delay (1000);
+	buttonMode.onPressed();
 	// start internal time update ISR
 	tkSecond.attach(1, ISRsecondTick);
 
-	// tell FastLED about the LED strip configuration
-	FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalSMD5050);
-	FastLED.setBrightness(BRIGHTNESS);
-	Serial.println("FastLed Setup done");
-
 	// start internal time update ISR
 	tkSecond.attach(1, ISRsecondTick);
+	
 }
 
 // the loop function runs over and over again forever
@@ -151,7 +191,7 @@ void loop() {
 	if (config.Update_Time_Via_NTP_Every > 0) {
 		if (cNTP_Update > 5 && firstStart) {
 			getNTPtime();
-			delay(1500); //wait for DateTime
+			delay(2000); //wait for DateTime
 			cNTP_Update = 0;
 			firstStart = false;
 		}
@@ -162,47 +202,74 @@ void loop() {
 	}
 	//  feed de DOG :)
 	customWatchdog = millis();
-
+  if (white_light_on == false) {      					// test light on
 	//============================
 	if (WIFI_connected != WL_CONNECTED and manual_time_set == false) {
 		config.Update_Time_Via_NTP_Every = 0;
 		//display_animation_no_wifi
 		softtwinkles();
+		FastLED.show();
 	} else if (ntp_response_ok == false and manual_time_set == false) {
 		config.Update_Time_Via_NTP_Every = 1;
 		//display_animation_no_ntp
 		pride();
+		FastLED.show();
 	} else if (ntp_response_ok == true or manual_time_set == true) {
 		if (temp_second != DateTime.second) {
 			temp_second = DateTime.second;
 			timeDisplay(DateTime.hour, DateTime.minute, DateTime.second);
+			FastLED.show();
 		}
 	}
-	FastLED.show();
+	// test button
+	if (buttonMode.onPressed()) {
+		whiteringon();
+		white_light_on = true;
+		white_light_timer = (millis() + (60000 * config.colorLightTm));
+	}
+  } else {
+	// test button and time light
+	if (buttonMode.onPressed() || (millis() > white_light_timer)) {	
+		white_light_on = false;
+		whiteringoff();
+		timeDisplay(DateTime.hour, DateTime.minute, DateTime.second);
+		FastLED.show();
+	}
+  }
 }
 
 void timeDisplay(byte h, byte m, byte s) {
+
+	int y = map(analogRead(FOTO_PIN), 1360, 4095, config.brightnessMin, config.brightnessMax);
+	FastLED.setBrightness(y);
+	
 	//minute dial
-	fill_solid( leds, NUM_LEDS, CRGB(0,0,0));
+	fill_solid( leds, NUM_LEDS, CRGB(0,0,0));    // clear leds
+	byte h24 = h;
 	if (h > 11) {h = h - 12;}
 	//	hour dials
 	for (int i = 0; i < 60; i += 5) {
-		leds[RING_LEDS[i]] = CRGB(24,24,24);
+		leds[RING_LEDS[i]] = config.colorCif2Print;
 	}
 	for (int i = 0; i < 60; i += 15) {
-		leds[RING_LEDS[i]] = CRGB(240,240,240);
+		leds[RING_LEDS[i]] = config.colorCif1Print;
 	}
+	for (int i = 0; i < 12; i += 3) {
+		leds[RING_LEDH[i]] = config.colorCif1Print;
+	}
+	
 	//time
 	//hour
-	if (m < 12) {leds[RING_LEDS[h*5]] = HourColor;}
-	if (m >= 12 && m < 24) {leds[RING_LEDS[h*5+1]] = HourColor;}
-	if (m >= 24 && m < 36) {leds[RING_LEDS[h*5+2]] = HourColor;}
-	if (m >= 36 && m < 48) {leds[RING_LEDS[h*5+3]] = HourColor;}
-	if (m >= 48 && m < 60) {leds[RING_LEDS[h*5+4]] = HourColor;}
+	leds[RING_LEDH[h]] = config.colorHourPrint;
+
 	//minute
-	leds[RING_LEDS[m]] = MinuteColor;
+	leds[RING_LEDS[m]] = config.colorMinPrint;
 	//second
-	leds[RING_LEDS[s]] = SecondColor;
+	if (config.displaySec) {
+		if ((h24 >= config.displaySecStart) && (h24 < config.displaySecStop)) {
+			leds[RING_LEDS[s]] = config.colorSecPrint;
+		}
+	}
 }
 
 void pride()
@@ -267,3 +334,41 @@ void softtwinkles() {
 	}
 }
 
+void rotring() {
+	for (int i = 0; i < 48; i++) {
+		leds[RING_LEDH[i]] = CRGB::Red;
+		FastLED.show();
+		delay(20);
+	}	
+}
+void whiteringon() {
+	FastLED.setBrightness(config.colorLightBr);
+	for (int i = 0; i < 48; i++) {
+		leds[RING_LEDF[i]] = config.colorLight;
+		FastLED.show();
+		delay(10);
+	}	
+	for (int i = 0; i < 60; i++) {
+		leds[RING_LEDS[i]] = config.colorLight;
+		FastLED.show();
+		delay(10);		
+		
+	}	
+}
+
+void whiteringoff() {
+	int x = 47;
+	for (int i = 0; i < 48; i++) {
+		x--;
+		leds[RING_LEDF[x]] = 0x000000;
+		FastLED.show();
+		delay(20);
+	}	
+	x = 59;
+	for (int i = 0; i < 60; i++) {
+		x--;
+		leds[RING_LEDS[x]] = 0x000000;
+		FastLED.show();
+		delay(20);		
+	}	
+}

@@ -27,7 +27,7 @@ const char PAGE_NTPConfiguration[] PROGMEM = R"=====(
   <option value="-10">(GMT-01:00)</option>
   <option value="0">(GMT+00:00)</option>
   <option value="10">(GMT+01:00)</option>
-  <option value="20">(GMT+02:00)</option>
+  <option value="20" selected>(GMT+02:00)</option>
   <option value="30">(GMT+03:00)</option>
   <option value="35">(GMT+03:30)</option>
   <option value="40">(GMT+04:00)</option>
@@ -49,6 +49,23 @@ const char PAGE_NTPConfiguration[] PROGMEM = R"=====(
 </select>
 </td></tr>
 <tr><td align="right">Daylight saving:</td><td><input type="checkbox" id="dst" name="dst"></td></tr>
+<tr><td align="right">&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td align="right">Display seconds:</td><td><input type="checkbox" id="sets" name="sets"></td></tr>
+<tr><td align="right">Show time start:</td><td><input type="text" id="starth" name="starth" size="2" maxlength="2" value=""> hour (0 - 23)</td></tr>
+<tr><td align="right">Show time stop:</td><td><input type="text" id="stoph" name="stoph" size="2" maxlength="2" value=""> hour (0 - 24)</td></tr>
+<tr><td align="right">&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td align="right">Brightness min.:</td><td><input type="text" id="minbr" name="minbr" size="3" maxlength="3" value=""> (0 - 255)</td></tr>
+<tr><td align="right">Brightness max.:</td><td><input type="text" id="maxbr" name="maxbr" size="3" maxlength="3" value=""> (0 - 255)</td></tr>
+<tr><td align="right">&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td align="right">Color seconds: </td><td><input type="color" id="clrs" name="clrs" value=""></td></tr>
+<tr><td align="right">Color minits: </td><td><input type="color" id="clrm" name="clrm" value=""></td></tr>
+<tr><td align="right">Color hours: </td><td><input type="color" id="clrh" name="clrh" value=""></td></tr>
+<tr><td align="right">Color clock face: </td><td><input type="color" id="clrcf1" name="clrcf1" value=""></td></tr>
+<tr><td align="right">Color cl. face s.: </td><td><input type="color" id="clrcf2" name="clrcf2" value=""></td></tr>
+<tr><td align="right">&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td align="right">Color Light: </td><td><input type="color" id="clrlgh" name="clrlgh" value=""></td></tr>
+<tr><td align="right">Brightness Light:</td><td><input type="text" id="lghbr" name="lghbr" size="3" maxlength="3" value=""> (0 - 255)</td></tr>
+<tr><td align="right">Time Light:</td><td><input type="text" id="lghtm" name="lghtm" size="3" maxlength="3" value=""> (0 - 60) min.</td></tr>
 <tr><td colspan="2" align="center"><input type="submit" style="width:150px" class="btn btn--m btn--grey" value="Save"></td></tr>
 </table>
 </form>
@@ -78,11 +95,25 @@ void send_NTP_configuration_html()
   if (server.args() > 0 )  // Save Settings
   {
     config.isDayLightSaving = false;
+	config.displaySec = false;
     for ( uint8_t i = 0; i < server.args(); i++ ) {
       if (server.argName(i) == "ntpserver") config.ntpServerName = urldecode( server.arg(i));
       if (server.argName(i) == "update") config.Update_Time_Via_NTP_Every =  server.arg(i).toInt();
       if (server.argName(i) == "tz") config.timeZone =  server.arg(i).toInt();
       if (server.argName(i) == "dst") config.isDayLightSaving = true;
+	  if (server.argName(i) == "sets") config.displaySec = true;
+      if (server.argName(i) == "starth") config.displaySecStart =  server.arg(i).toInt();
+      if (server.argName(i) == "stoph") config.displaySecStop =  server.arg(i).toInt();
+      if (server.argName(i) == "minbr") config.brightnessMin =  server.arg(i).toInt();
+      if (server.argName(i) == "maxbr") config.brightnessMax =  server.arg(i).toInt();
+      if (server.argName(i) == "clrs") config.colorSecPrint = strtol( &server.arg(i)[1], NULL, 16);
+      if (server.argName(i) == "clrm") config.colorMinPrint = strtol( &server.arg(i)[1], NULL, 16);
+      if (server.argName(i) == "clrh") config.colorHourPrint = strtol( &server.arg(i)[1], NULL, 16);
+      if (server.argName(i) == "clrcf1") config.colorCif1Print = strtol( &server.arg(i)[1], NULL, 16);
+      if (server.argName(i) == "clrcf2") config.colorCif2Print = strtol( &server.arg(i)[1], NULL, 16);
+      if (server.argName(i) == "clrlgh") config.colorLight = strtol( &server.arg(i)[1], NULL, 16);
+	  if (server.argName(i) == "lghbr") config.colorLightBr =  server.arg(i).toInt();
+	  if (server.argName(i) == "lghtm") config.colorLightTm =  server.arg(i).toInt();
     }
     WriteConfig();
     firstStart = true;
@@ -95,12 +126,32 @@ void send_NTP_configuration_html()
 
 void send_NTP_configuration_values_html()
 {
-
+  char buffer[16];
+  
   String values ="";
   values += "ntpserver|" + (String) config.ntpServerName + "|input\n";
-  values += "update|" +  (String) config.Update_Time_Via_NTP_Every + "|input\n";
-  values += "tz|" +  (String) config.timeZone + "|input\n";
-  values += "dst|" +  (String) (config.isDayLightSaving ? "checked" : "") + "|chk\n";
+  values += "update|" + (String) config.Update_Time_Via_NTP_Every + "|input\n";
+  values += "tz|" + (String) config.timeZone + "|input\n";
+  values += "dst|" + (String) (config.isDayLightSaving ? "checked" : "") + "|chk\n";
+  values += "sets|" + (String) (config.displaySec ? "checked" : "") + "|chk\n";
+  values += "starth|" + (String) config.displaySecStart + "|input\n";
+  values += "stoph|" + (String) config.displaySecStop + "|input\n";
+  values += "minbr|" + (String) config.brightnessMin + "|input\n";
+  values += "maxbr|" + (String) config.brightnessMax + "|input\n";
+  sprintf(buffer, "%06X", config.colorSecPrint);  
+  values += "clrs|#" + (String) buffer + "|input\n";
+  sprintf(buffer, "%06X", config.colorMinPrint);  
+  values += "clrm|#" + (String) buffer + "|input\n"; 
+  sprintf(buffer, "%06X", config.colorHourPrint);  
+  values += "clrh|#" + (String) buffer + "|input\n"; 
+  sprintf(buffer, "%06X", config.colorCif1Print);  
+  values += "clrcf1|#" + (String) buffer + "|input\n";
+  sprintf(buffer, "%06X", config.colorCif2Print);  
+  values += "clrcf2|#" + (String) buffer + "|input\n";
+  sprintf(buffer, "%06X", config.colorLight);  
+  values += "clrlgh|#" + (String) buffer + "|input\n";
+  values += "lghbr|" + (String) config.colorLightBr + "|input\n";  
+  values += "lghtm|" + (String) config.colorLightTm + "|input\n";  
   server.send ( 200, "text/plain", values);
   Serial.println(__FUNCTION__);
   AdminTimeOutCounter=0;
