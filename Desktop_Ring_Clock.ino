@@ -58,7 +58,7 @@ void setup() {
 	Serial.begin(115200);
 	pinMode(DEFAULT_PIN, INPUT_PULLUP);			// defaul setings pins (reset config)
 	// tell FastLED about the LED strip configuration
-	FastLED.addLeds<LED_TYPE, LED_PIN >(leds, NUM_LEDS);
+	FastLED.addLeds<LED_TYPE, LED_PIN >(leds, NUM_LEDS).setCorrection(TypicalSMD5050);
 	FastLED.setBrightness(BRIGHTNESS);
 	   // limit my draw to 1A at 5v of power draw
 	FastLED.setMaxPowerInVoltsAndMilliamps(5,400); 
@@ -240,7 +240,7 @@ void loop() {
 
 void timeDisplay(byte h, byte m, byte s) {
 
-	int y = map(analogRead(FOTO_PIN), 1360, 4095, config.brightnessMin, config.brightnessMax);
+	int y = map(analogRead(FOTO_PIN), 300, 4095, config.brightnessMin, config.brightnessMax);
 	FastLED.setBrightness(y);
 	
 	//minute dial
