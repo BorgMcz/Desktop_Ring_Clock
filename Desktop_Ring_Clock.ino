@@ -3,12 +3,14 @@
  * * ESP32 ring clock NEOPIXEL
  *   fork to https://github.com/ancalex/Desktop_Ring_Clock
  * 
+ *   !!!! Set CPU clock to 160MHz. !!!! 
  *
  * Add: 	- button reset default config
  * 			- dislpay second to time
  *			- light sensor 
  *			- set color to full LED
  * 			- add button to default config or set light
+ *			- delete miniajax for info, system and admin page
  */
 #define FASTLED_INTERRUPT_RETRY_COUNT 0
 #include "FastLED.h"					// https://github.com/FastLED/FastLED
@@ -124,8 +126,8 @@ void setup() {
 		config.colorCif2Print = 0xBFCB1A;
 		config.colorLight = 0xF0F0F0;
 		config.colorLightBr = 200;
-		config.colorLightTm = 5;		
-		//WriteConfig();
+		config.colorLightTm = 5;
+        if (!CFG_saved) {WriteConfig();}		
 		WiFi.mode(WIFI_AP);
 		WiFi.softAP(config.ssid.c_str(),"admin1234");
 		Serial.print("Wifi ip:");
@@ -134,41 +136,31 @@ void setup() {
 
 	// Start HTTP Server for configuration
 	server.on("/", []() {
-		Serial.println("admin.html");
 		server.send_P ( 200, "text/html", PAGE_AdminMainPage); // const char top of page
 	});
 
-/*
-	server.on("/favicon.ico", []() {
-		Serial.println("favicon.ico");
-		server.send( 200, "text/html", "" );
-	});
-*/	
 	// Network config
 	server.on("/config.html", send_network_configuration_html);
 	// Info Page
 	server.on("/info.html", []() {
-		Serial.println("info.html");
 		Information_Page();
 		
 	});
-	server.on("/ntp.html", send_NTP_configuration_html);
+	server.on("/ntp.html", HTTP_GET, []() {
+		NTPConfiguration_Page();
+	});
+	
 	server.on("/time.html", send_Time_Set_html);
 	server.on("/style.css", []() {
-		Serial.println("style.css");
 		server.send_P ( 200, "text/plain", PAGE_Style_css );
 	});
 	server.on("/microajax.js", []() {
-		Serial.println("microajax.js");
 		server.send_P ( 200, "text/plain", PAGE_microajax_js );
 	});
 	server.on("/admin/values", send_network_configuration_values_html);
 	server.on("/admin/connectionstate", send_connection_state_values_html);
-	server.on("/admin/infovalues", send_information_values_html);
-	server.on("/admin/ntpvalues", send_NTP_configuration_values_html);
 	server.on("/admin/timevalues", send_Time_Set_values_html);
 	server.onNotFound([]() {
-		Serial.println("Page Not Found");
 		server.send ( 400, "text/html", "Page not Found" );
 	});
 	server.begin();
@@ -207,8 +199,11 @@ void loop() {
 	if (WIFI_connected != WL_CONNECTED and manual_time_set == false) {
 		config.Update_Time_Via_NTP_Every = 0;
 		//display_animation_no_wifi
-		softtwinkles();
-		FastLED.show();
+		if (millis() > (timer_old + 50)) {
+			softtwinkles();
+			FastLED.show();
+			timer_old = millis();
+		}
 	} else if (ntp_response_ok == false and manual_time_set == false) {
 		config.Update_Time_Via_NTP_Every = 1;
 		//display_animation_no_ntp
@@ -335,7 +330,7 @@ void softtwinkles() {
 }
 
 void rotring() {
-	for (int i = 0; i < 48; i++) {
+	for (int i = 0; i < 75; i++) {
 		leds[RING_LEDH[i]] = CRGB::Red;
 		FastLED.show();
 		delay(20);
@@ -357,14 +352,14 @@ void whiteringon() {
 }
 
 void whiteringoff() {
-	int x = 47;
+	int x = 48;
 	for (int i = 0; i < 48; i++) {
 		x--;
 		leds[RING_LEDF[x]] = 0x000000;
 		FastLED.show();
 		delay(20);
 	}	
-	x = 59;
+	x = 60;
 	for (int i = 0; i < 60; i++) {
 		x--;
 		leds[RING_LEDS[x]] = 0x000000;

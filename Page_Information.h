@@ -32,11 +32,5 @@ server.send_P ( 200, "text/html", PAGE_Information );
 // FILL WITH INFOMATION
 //
 
-void send_information_values_html ()
-{
-
-
-}
-
 
 #endif

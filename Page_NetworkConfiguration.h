@@ -8,6 +8,7 @@
 const char PAGE_NetworkConfiguration[] PROGMEM = R"=====(
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel='stylesheet' href='style.css' type='text/css' />
 <a href="/"  class="btn btn--s btn--grey">&#9664;</a>&nbsp;&nbsp;<strong>Network Configuration</strong>
 <hr>
 Connect to Router with these settings:<br>
@@ -34,6 +35,19 @@ Connect to Router with these settings:<br>
 
 <script>
 
+
+
+
+window.onload = function ()
+{
+		load("microajax.js","js", function() 
+		{
+					setValues("/admin/values");
+					setTimeout(GetState,3000);
+		});
+}
+function load(e,t,n){if("js"==t){var a=document.createElement("script");a.src=e,a.type="text/javascript",a.async=!1,a.onload=function(){n()},document.getElementsByTagName("head")[0].appendChild(a)}else if("css"==t){var a=document.createElement("link");a.href=e,a.rel="stylesheet",a.type="text/css",a.async=!1,a.onload=function(){n()},document.getElementsByTagName("head")[0].appendChild(a)}}
+
 function GetState()
 {
 	setValues("/admin/connectionstate");
@@ -42,22 +56,6 @@ function selssid(value)
 {
 	document.getElementById("ssid").value = value; 
 }
-
-
-window.onload = function ()
-{
-	load("style.css","css", function() 
-	{
-		load("microajax.js","js", function() 
-		{
-					setValues("/admin/values");
-					setTimeout(GetState,3000);
-		});
-	});
-}
-function load(e,t,n){if("js"==t){var a=document.createElement("script");a.src=e,a.type="text/javascript",a.async=!1,a.onload=function(){n()},document.getElementsByTagName("head")[0].appendChild(a)}else if("css"==t){var a=document.createElement("link");a.href=e,a.rel="stylesheet",a.type="text/css",a.async=!1,a.onload=function(){n()},document.getElementsByTagName("head")[0].appendChild(a)}}
-
-
 
 
 </script>
@@ -108,7 +106,7 @@ void send_network_configuration_html()
 	{
 		server.send ( 200, "text/html", PAGE_NetworkConfiguration );
 	}
-	Serial.println(__FUNCTION__);
+//	Serial.println(__FUNCTION__);
 }
 
 
@@ -138,7 +136,7 @@ void send_network_configuration_values_html()
 	values += "gw_3|" +  (String) config.Gateway[3] + "|input\n";
 	values += "dhcp|" +  (String) (config.dhcp ? "checked" : "") + "|chk\n";
 	server.send ( 200, "text/plain", values);
-	Serial.println(__FUNCTION__);
+//	Serial.println(__FUNCTION__);
 
 }
 
@@ -201,7 +199,7 @@ void send_connection_state_values_html()
 	values += "connectionstate|" +  state + "|div\n";
 	values += "networks|" +  Networks + "|div\n";
 	server.send ( 200, "text/plain", values);
-	Serial.println(__FUNCTION__);
+//	Serial.println(__FUNCTION__);
 
 }
 

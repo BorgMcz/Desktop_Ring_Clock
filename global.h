@@ -19,6 +19,7 @@ long absoluteActualTime;
 long  customWatchdog;                     // WatchDog to detect main loop blocking. There is a builtin WatchDog to the chip firmare not related to this one
 bool white_light_on = false;			// White light values
 unsigned long white_light_timer;
+unsigned long timer_old;				// Timer rotate efect
 
 struct strConfig {
   boolean dhcp;                         // 1 Byte - EEPROM 16
