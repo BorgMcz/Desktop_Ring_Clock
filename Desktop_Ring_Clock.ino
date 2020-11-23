@@ -63,7 +63,7 @@ void setup() {
 	FastLED.addLeds<LED_TYPE, LED_PIN >(leds, NUM_LEDS).setCorrection(TypicalSMD5050);
 	FastLED.setBrightness(BRIGHTNESS);
 	   // limit my draw to 1A at 5v of power draw
-	FastLED.setMaxPowerInVoltsAndMilliamps(5,400); 
+	FastLED.setMaxPowerInVoltsAndMilliamps(5,600); 
 	Serial.println("FastLed Setup done ... waiting..");
 	delay(2000);
 
@@ -71,12 +71,15 @@ void setup() {
 	EEPROM.begin(512); // define an EEPROM space of 512Bytes to store data
 	CFG_saved = ReadConfig();
 	if (digitalRead(DEFAULT_PIN) == 0) {						// reset config data to default
-		CFG_saved = false;
+		CFG_Button = true;
 		rotring();
+		if (digitalRead(DEFAULT_PIN) == 0) {						// saved default config data
+		CFG_saveButton = true;
+		}
 	}
 
 	//  Connect to WiFi acess point or start as Acess point
-	if (CFG_saved)  //if no configuration yet saved, load defaults
+	if (CFG_saved and CFG_Button == false)  //if no configuration yet saved, load defaults
 	{
 		// Connect the ESP8266 to local WIFI network in Station mode
 		Serial.println("Booting");
@@ -91,7 +94,7 @@ void setup() {
 		Serial.println(WiFi.localIP());
 	}
 
-	if ((WIFI_connected != WL_CONNECTED) or !CFG_saved) {
+	if ((WIFI_connected != WL_CONNECTED) or !CFG_saved or CFG_Button == true) {
 		// DEFAULT CONFIG
 		Serial.println("Setting AP mode default parameters");
 		config.ssid = "RingClock-config"; // SSID of access point
@@ -110,24 +113,28 @@ void setup() {
 		config.Gateway[2] = 1;
 		config.Gateway[3] = 254;
 		config.DeviceName = "Ring Clock";
-		config.ntpServerName = "0.europe.pool.ntp.org"; // to be adjusted to PT ntp.ist.utl.pt
-		config.Update_Time_Via_NTP_Every = 3;
-		config.timeZone = 20;
-		config.isDayLightSaving = true;
-		config.displaySec = true;
-		config.displaySecStart = 0;
-		config.displaySecStop = 24;
-		config.brightnessMin = 10;
-		config.brightnessMax = 80;
-		config.colorSecPrint = 0x4169E1;
-		config.colorMinPrint = 0x6A5ACD;
-		config.colorHourPrint = 0xD62505;
-		config.colorCif1Print = 0xFFF238;
-		config.colorCif2Print = 0xBFCB1A;
-		config.colorLight = 0xF0F0F0;
-		config.colorLightBr = 200;
-		config.colorLightTm = 5;
-        if (!CFG_saved) {WriteConfig();}		
+
+		if (CFG_saveButton == true or !CFG_saved) {
+			config.ntpServerName = "0.europe.pool.ntp.org"; // to be adjusted to PT ntp.ist.utl.pt
+			config.Update_Time_Via_NTP_Every = 3;
+			config.timeZone = 20;
+			config.isDayLightSaving = true;
+			config.displaySec = true;
+			config.displaySecStart = 0;
+			config.displaySecStop = 24;	
+			config.brightnessMin = 10;
+			config.brightnessMax = 80;
+			config.colorLightBr = 200;
+			config.colorLightTm = 5;
+			config.colorSecPrint = 0x4169E1;
+			config.colorMinPrint = 0x6A5ACD;
+			config.colorHourPrint = 0xD62505;
+			config.colorCif1Print = 0xFFF238;
+			config.colorCif2Print = 0xBFCB1A;
+			config.colorLight = 0xF0F0F0;
+			WriteConfig();
+			Serial.println("Saved all default parameters");
+		}		
 		WiFi.mode(WIFI_AP);
 		WiFi.softAP(config.ssid.c_str(),"admin1234");
 		Serial.print("Wifi ip:");

@@ -9,6 +9,8 @@ boolean manual_time_set = false;;
 String chipID;
 int WIFI_connected = false;
 bool CFG_saved = false;
+bool CFG_Button = false;
+bool CFG_saveButton = false;
 int AdminTimeOutCounter = 0;							// Counter for Disabling the AdminMode
 WiFiUDP UDPNTPClient;											// NTP Client
 volatile unsigned long UnixTimestamp = 0;	// GLOBALTIME  ( Will be set by NTP)
